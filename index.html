@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI智能试衣间 | FASHION FITTING ROOM</title>
+    <!-- Tailwind CSS Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#FE2C55',   /* TikTok Pink */
+                        secondary: '#25F4EE', /* TikTok Cyan */
+                    },
+                    scale: {
+                        '102': '1.02',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Inter & JetBrains Mono Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons via CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #000000;
+            color: #ffffff;
+            -webkit-font-smoothing: antialiased;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom scrollbar hiding */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* Gradient Backgrounds */
+        .tiktok-gradient {
+            background: linear-gradient(135deg, #FE2C55 0%, #25F4EE 100%);
+        }
+        /* Subtle glowing shadows */
+        .glow-pink {
+            box-shadow: 0 0 25px rgba(254, 44, 85, 0.35);
+        }
+        .glow-cyan {
+            box-shadow: 0 0 25px rgba(37, 244, 238, 0.35);
+        }
+        /* Keyframe animations */
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+        .animate-pulse-slow {
+            animation: pulse-slow 3s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="relative w-full h-screen overflow-hidden flex flex-col items-center">
+
+    <!-- NAVIGATION HEADER -->
+    <nav class="w-full h-16 px-6 md:px-8 border-b border-zinc-900 flex items-center justify-between z-50 bg-black/80 backdrop-blur-md">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-[#FE2C55] rounded flex items-center justify-center font-bold text-lg select-none text-white ring-2 ring-white/10">F</div>
+            <div class="flex flex-col leading-none">
+                <span class="font-black text-sm tracking-tight uppercase text-white">FASHION FITTING ROOM</span>
+                <span class="font-bold text-[10px] tracking-tight opacity-70 text-white">AI智能试衣间</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-6">
+            <div class="hidden md:flex flex-col items-end gap-0.5 text-[10px] text-zinc-400 font-bold uppercase tracking-widest leading-none">
+                <div class="flex items-center gap-1.5">
+                    <span id="status-dot" class="w-1.5 h-1.5 rounded-full bg-[#25F4EE] animate-pulse"></span>
+                    <span id="status-text">PROCESSOR: READY</span>
+                </div>
+                <div id="status-subtext" class="opacity-50">就绪</div>
+            </div>
+            <button id="reset-btn" class="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-full text-[10px] font-black text-white hover:bg-zinc-800 transition-all uppercase tracking-widest flex flex-col items-center leading-tight">
+                <span>Reset</span>
+                <span class="opacity-60 text-[8px]">重置</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- MAIN APP CONTAINER -->
+    <div class="flex-1 w-full overflow-hidden flex flex-col relative">
+
+        <!-- ZOOM OVERLAYS -->
+        <!-- Image Zoom Overlay -->
+        <div id="zoom-image-overlay" class="hidden fixed inset-0 z-[100] bg-black/98 backdrop-blur-2xl flex items-center justify-center p-4">
+            <button id="close-zoom-image" class="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center justify-center text-white transition-all z-10 transition-transform hover:scale-105 active:scale-95">
+                <i data-lucide="x" class="w-7 h-7"></i>
+            </button>
+            <img id="zoom-target-image" src="" class="max-w-full max-h-[85vh] object-contain shadow-[0_0_100px_rgba(0,0,0,0.8)] rounded-lg transition-all duration-300 transform scale-95" alt="Zoomed Output" />
+        </div>
+
+        <!-- Video Zoom Overlay -->
+        <div id="zoom-video-overlay" class="hidden fixed inset-0 z-[100] bg-black/98 backdrop-blur-2xl flex items-center justify-center p-4">
+            <button id="close-zoom-video" class="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center justify-center text-white transition-all z-10 transition-transform hover:scale-105 active:scale-95">
+                <i data-lucide="x" class="w-7 h-7"></i>
+            </button>
+            <div class="w-full max-w-4xl aspect-video bg-black rounded-2xl overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.9)] relative">
+                <video id="zoom-target-video" src="" class="w-full h-full object-contain" controls autoplay playsinline loop></video>
+            </div>
+        </div>
+
+        <!-- SCREEN VIEWS -->
+
+        <!-- STEP 1: UPLOAD -->
+        <div id="screen-upload" class="step-screen w-full h-full flex flex-col p-6 max-w-lg mx-auto opacity-100 transition-all duration-300">
+            <header class="mb-8 text-center md:text-left">
+                <h1 class="text-4xl font-black tracking-tighter leading-none mb-4 uppercase text-white">
+                    Upload Reference
+                    <br />
+                    <span class="text-3xl text-zinc-100">上传参考</span>
+                </h1>
+                <p class="text-zinc-500 text-[10px] font-black uppercase tracking-widest leading-relaxed">
+                    Stage 01: Character & Style Mapping
+                    <br />
+                    人物与风格匹配
+                </p>
+            </header>
+
+            <div class="space-y-6 flex-1 overflow-y-auto no-scrollbar pb-10">
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Face photo input -->
+                    <div id="user-img-box" class="group relative aspect-[3/4] w-full bg-zinc-90 w-full bg-zinc-900 rounded-3xl border border-dashed border-zinc-800 flex flex-col items-center justify-center p-4 transition-all hover:bg-zinc-800/50 hover:border-primary/50 overflow-hidden cursor-pointer">
+                        <img id="user-img-preview" class="hidden absolute inset-0 w-full h-full object-contain bg-zinc-950" alt="User Image" />
+                        <div id="user-img-placeholder" class="flex flex-col items-center">
+                            <i data-lucide="user" class="text-zinc-600 mb-3 w-8 h-8"></i>
+                            <span class="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 text-center">Subject Photo<br/>本人照片</span>
+                        </div>
+                        <input type="file" id="user-img-input" class="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" />
+                        <div id="autofill-user" class="absolute bottom-3 px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-[9px] text-zinc-300 rounded-full transition-all border border-zinc-700 z-10 font-bold uppercase tracking-wider" onclick="event.stopPropagation(); autofillUser();">Demo Autofill</div>
+                    </div>
+
+                    <!-- Outfit photo input -->
+                    <div id="outfit-img-box" class="group relative aspect-[3/4] w-full bg-zinc-90 w-full bg-zinc-900 rounded-3xl border border-dashed border-zinc-800 flex flex-col items-center justify-center p-4 transition-all hover:bg-zinc-800/50 hover:border-secondary/50 overflow-hidden cursor-pointer">
+                        <img id="outfit-img-preview" class="hidden absolute inset-0 w-full h-full object-contain bg-zinc-950" alt="Outfit Refer" />
+                        <div id="outfit-img-placeholder" class="flex flex-col items-center">
+                            <i data-lucide="shirt" class="text-zinc-600 mb-3 w-8 h-8"></i>
+                            <span class="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 text-center">Outfit Ref<br/>服装参考</span>
+                        </div>
+                        <input type="file" id="outfit-img-input" class="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" />
+                        <div id="autofill-outfit" class="absolute bottom-3 px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-[9px] text-zinc-300 rounded-full transition-all border border-zinc-700 z-10 font-bold uppercase tracking-wider" onclick="event.stopPropagation(); autofillOutfit();">Demo Autofill</div>
+                    </div>
+                </div>
+
+                <!-- Analysis guidelines and text prompts -->
+                <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+                    <h3 class="text-[10px] text-zinc-500 font-black uppercase tracking-widest mb-4">
+                        Analysis Prompt
+                        <br />
+                        分析描述
+                    </h3>
+                    <textarea 
+                        id="prompt-textarea"
+                        placeholder="Input creative direction...&#10;输入创作指令..."
+                        class="w-full bg-transparent border-none text-white placeholder:text-zinc-750 text-sm italic leading-relaxed focus:ring-0 focus:outline-none resize-none h-24"
+                    ></textarea>
+                </div>
+            </div>
+
+            <div class="pt-6">
+                <button 
+                    id="gen-proposal-btn" 
+                    disabled
+                    class="opacity-30 pointer-events-none group relative w-full p-1 rounded-full bg-gradient-to-tr from-[#FE2C55] to-[#25F4EE] transition-all duration-300 active:scale-95"
+                >
+                    <div class="bg-black hover:bg-transparent transition-colors px-10 py-5 rounded-full flex flex-col items-center gap-1">
+                        <span class="font-black text-lg tracking-tighter uppercase text-white">Generate Proposal</span>
+                        <span class="text-xs font-bold opacity-70 text-white">生成方案</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- STEP 2: ANALYSIS ANIMATION -->
+        <div id="screen-analysis" class="step-screen hidden w-full h-full flex flex-col p-6 max-w-lg mx-auto opacity-0 transition-all duration-300">
+            <div class="flex-1 flex flex-col items-center justify-center">
+                <div class="relative mb-12 text-center">
+                    <!-- Spinning circular dashed stroke -->
+                    <div class="w-32 h-32 rounded-full border border-dashed border-zinc-700 animate-[spin_4s_linear_infinite] mx-auto"></div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div id="analysis-icon-box" class="w-20 h-20 rounded-3xl tiktok-gradient flex items-center justify-center shadow-[0_0_50px_rgba(254,44,85,0.4)]">
+                            <i data-lucide="camera" id="analysis-icon" class="w-8 h-8 text-black"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center h-28">
+                    <h3 id="analysis-title" class="text-2xl font-black tracking-tighter uppercase mb-2 leading-tight text-white">
+                        Visual Director
+                        <br />
+                        <span class="text-xl text-zinc-100">视觉总监</span>
+                    </h3>
+                    <p id="analysis-desc" class="text-zinc-500 text-[10px] font-black uppercase tracking-widest leading-relaxed">
+                        Analyzing aesthetics & palette...
+                        <br />
+                        分析美学与色调...
+                    </p>
+                </div>
+
+                <div class="mt-16 flex gap-3">
+                    <div id="indicator-0" class="w-12 h-2 rounded-full bg-secondary transition-all duration-700"></div>
+                    <div id="indicator-1" class="w-2 h-2 rounded-full bg-zinc-800 transition-all duration-700"></div>
+                    <div id="indicator-2" class="w-2 h-2 rounded-full bg-zinc-800 transition-all duration-700"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 3: EXPERTS VIEW -->
+        <div id="screen-experts" class="step-screen hidden w-full h-full flex flex-col p-6 max-w-lg mx-auto opacity-0 transition-all duration-300">
+            <header class="mb-6">
+                <h1 class="text-3xl font-black tracking-tighter leading-none mb-2 uppercase text-white">
+                    Styling Vision
+                    <br />
+                    造型方案
+                </h1>
+                <p class="text-zinc-500 text-[10px] font-black uppercase tracking-widest leading-relaxed">
+                    Stage 02: Lead Experts Feedback
+                    <br />
+                    专家反馈
+                </p>
+            </header>
+
+            <div class="flex-1 space-y-6 overflow-y-auto no-scrollbar pb-10">
+                <!-- Scheme Toggle TABS -->
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <button id="scheme1-tab" class="p-3 rounded-2xl border transition-all bg-primary border-primary text-white">
+                        <span class="text-[10px] font-black uppercase">Scheme 01<br/>方案一</span>
+                    </button>
+                    <button id="scheme2-tab" class="p-3 rounded-2xl border transition-all bg-zinc-900 border-zinc-800 text-zinc-500">
+                        <span class="text-[10px] font-black uppercase">Scheme 02<br/>方案二</span>
+                    </button>
+                </div>
+
+                <!-- Main Stylist Card -->
+                <div class="border border-zinc-850 bg-zinc-900/40 rounded-3xl p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center border border-white/10 italic font-serif text-lg text-white">S</div>
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-tight text-white">Main Stylist / 搭配师</p>
+                        </div>
+                    </div>
+                    <p id="stylist-en" class="text-xs text-white/95 leading-relaxed font-serif opacity-90">
+                        Corduroy‑toned denim bomber jacket, vintage‑washed graphic hoodie, two‑toned waistband underwear, ripped split‑hem wide‑leg jeans, fuchsia backpack, slim‑fit sunglasses, polished chunky‑sole leather loafers.
+                    </p>
+                    <p id="stylist-cn" class="text-xs text-white/60 leading-relaxed mt-2 italic">
+                        身穿做旧牛仔短款夹克，做旧印花连帽卫衣，撞色腰边内裤，破洞开衩阔腿牛仔裤，玫红色双肩背包，修身款墨镜，亮面乐福皮鞋。
+                    </p>
+                </div>
+
+                <!-- Glam Director Card -->
+                <div class="border border-zinc-850 bg-zinc-900/40 rounded-3xl p-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-8 h-8 rounded-full bg-secondary text-black flex items-center justify-center border border-black/10 italic font-serif text-lg">G</div>
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-tight text-white">Glam Director / 妆造师</p>
+                        </div>
+                    </div>
+                    <p id="makeup-en" class="text-xs text-zinc-300 leading-relaxed font-serif">
+                        Street trendsetters, trendy makeup, a clean parted eyebrow effect at the end of the left eyebrow, clear and deep eyes. Perfect matte foundation, the signature dark contouring perfectly sculpts the three-dimensional jawline and cheekbone contours, clear lip lines, and moist and plump lips.
+                    </p>
+                    <p id="makeup-cn" class="text-xs text-zinc-500 leading-relaxed mt-2 italic">
+                        街头弄潮儿，潮流妆容，左侧眉尾有一道干净的断眉效果，清澈深邃的眼神。完美的哑光底妆，标志性的深色修容完美雕刻出立体的下颌线和颧骨轮廓，清晰的毛流感，嘴唇滋润饱满。
+                    </p>
+                </div>
+            </div>
+
+            <div class="pt-4 flex gap-3 bg-black">
+                <button id="experts-back-btn" class="flex-1 py-4 bg-zinc-900 hover:bg-zinc-800 text-white rounded-full font-black text-sm uppercase transition-all active:scale-95 border border-zinc-800">
+                    Back / 返回
+                </button>
+                <button id="experts-shoot-btn" class="flex-[2] py-4 bg-white hover:bg-zinc-200 text-black rounded-full font-black text-sm uppercase transition-all active:scale-95">
+                    Shooting / 进入拍摄
+                </button>
+            </div>
+        </div>
+
+        <!-- STEP 4: SHOOTING ANIMATION -->
+        <div id="screen-shooting" class="step-screen hidden w-full h-full flex flex-col p-6 max-w-lg mx-auto opacity-0 transition-all duration-300 bg-black">
+            <div class="w-full max-w-sm mx-auto space-y-12 my-auto">
+                <div class="flex flex-col items-center">
+                    <div class="relative">
+                        <i data-lucide="camera" class="w-20 h-20 text-white opacity-10"></i>
+                        <div class="absolute inset-0 flex items-center justify-center animate-pulse-slow">
+                            <i data-lucide="camera" class="w-20 h-20 text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-8 text-center space-y-2">
+                        <div class="text-sm font-bold tracking-[0.2em] uppercase text-white">Capturing Content</div>
+                        <div class="text-[10px] font-mono tracking-widest text-zinc-400 uppercase">正在捕捉拍摄画面</div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="flex justify-between items-end">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-mono text-zinc-500 uppercase">Status</span>
+                            <span class="text-xs font-bold uppercase tracking-tight text-white">Virtual Studio / 拍摄中</span>
+                        </div>
+                        <span id="shooting-progress-pct" class="text-2xl font-black font-mono tracking-tighter text-white">0%</span>
+                    </div>
+                    <div class="h-1 bg-zinc-800 rounded-full overflow-hidden shadow-[0_0_10px_rgba(255,255,255,0.05)]">
+                        <div id="shooting-progress-bar" class="h-full bg-primary glow-pink w-0 transition-all duration-100"></div>
+                    </div>
+                    <div class="flex justify-between text-[8px] font-mono text-zinc-500 uppercase tracking-widest">
+                        <span>Live Feed Processing</span>
+                        <span>流媒体处理中</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 5: LOOKBOOK VIEW -->
+        <div id="screen-lookbook" class="step-screen hidden w-full h-full flex flex-col p-6 max-w-lg mx-auto opacity-0 transition-all duration-300">
+            <header class="mb-6 flex justify-between items-center">
+                <button id="lookbook-back-btn" class="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-white active:scale-95 transition-all">
+                    <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                </button>
+                <h1 class="text-2xl font-black tracking-tighter uppercase leading-none text-center text-white">
+                    LOOK BOOK / 内容展示
+                </h1>
+                <div class="w-10 h-10"></div>
+            </header>
+
+            <div id="lookbook-image-container" class="flex-1 flex flex-col min-h-0 items-center justify-center p-4 bg-zinc-950 rounded-[2rem] border border-zinc-900 relative group overflow-hidden cursor-zoom-in">
+                <img id="lookbook-main-img" src="https://i.postimg.cc/8c8Hvpsj/Gemini-Generated-Image-615a79615a79615a.png" class="w-full h-full object-contain shadow-2xl transition-transform duration-1000 group-hover:scale-102" alt="Lookbook Output" />
+                
+                <div class="absolute top-6 left-6">
+                    <span class="bg-amber-400 text-black text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-tighter flex flex-col items-center leading-none shadow-lg">
+                        <span>Studio Output</span>
+                        <span class="text-[8px] opacity-70">拍摄产出</span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="pt-8 flex gap-3 h-28 bg-black">
+                <button id="lookbook-retouch-btn" class="flex-1 py-5 bg-zinc-900 text-white rounded-2xl font-black text-[10px] items-center justify-center leading-tight uppercase transition-all active:scale-95 flex gap-2 border border-zinc-800 shadow-xl">
+                    <i data-lucide="camera" class="w-4 h-4 text-[#FE2C55]"></i>
+                    <div class="flex flex-col items-start text-left">
+                        <span>Retouch</span>
+                        <span class="opacity-70 text-[8px]">精修</span>
+                    </div>
+                </button>
+                <button id="lookbook-video-btn" class="flex-1 py-5 bg-white text-black rounded-2xl font-black text-[10px] items-center justify-center leading-tight uppercase transition-all active:scale-95 flex gap-2 shadow-xl hover:bg-zinc-200">
+                    <i data-lucide="play" class="w-4 h-4 fill-black text-black"></i>
+                    <div class="flex flex-col items-start text-left">
+                        <span>Video Shoot</span>
+                        <span class="opacity-70 text-[8px]">视频拍摄</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- STEP 6: POST PROCESSING ANIMATION -->
+        <div id="screen-post-processing" class="step-screen hidden w-full h-full flex flex-col p-6 max-w-lg mx-auto opacity-0 transition-all duration-300 bg-black">
+            <div class="w-full max-w-sm mx-auto space-y-12 my-auto">
+                <div class="flex flex-col items-center">
+                    <div class="relative">
+                        <i data-lucide="sparkles" id="post-proc-icon-back" class="w-20 h-20 text-white opacity-10"></i>
+                        <div class="absolute inset-0 flex items-center justify-center animate-pulse-slow">
+                            <i data-lucide="sparkles" id="post-proc-icon" class="w-20 h-20 text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-8 text-center space-y-2">
+                        <div class="text-sm font-bold tracking-[0.2em] uppercase text-white" id="post-proc-maintitle">Refining Details</div>
+                        <div class="text-[10px] font-mono tracking-widest text-zinc-400 uppercase" id="post-proc-subtitle">正在精修画面细节</div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="flex justify-between items-end">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] font-mono text-zinc-500 uppercase">Processing</span>
+                            <span class="text-xs font-bold uppercase tracking-tight text-white" id="post-proc-status">Retouching / 精修中</span>
+                        </div>
+                        <span id="post-proc-progress-pct" class="text-2xl font-black font-mono tracking-tighter text-white">0%</span>
+                    </div>
+                    <div class="h-1 bg-zinc-800 rounded-full overflow-hidden">
+                        <div id="post-proc-progress-bar" class="h-full bg-secondary w-0 transition-all duration-100"></div>
+                    </div>
+                    <div class="text-center text-[8px] font-mono text-zinc-500 uppercase tracking-widest" id="post-proc-footer">
+                        Upscaling Detail / 画质增强中
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 7: FINAL OUTPUT VIEW -->
+        <div id="screen-final" class="step-screen hidden w-full h-full flex flex-col p-6 max-w-lg mx-auto opacity-0 transition-all duration-300">
+            <div class="flex items-center justify-between mb-6 text-white bg-black">
+                <div class="flex items-center gap-3">
+                    <div class="w-1.5 h-8 bg-primary rounded-full"></div>
+                    <div>
+                        <h1 class="text-2xl font-black tracking-tighter uppercase leading-none">
+                            <span id="final-title-en">Retouch Output</span>
+                            <br />
+                            <span id="final-title-cn" class="text-xl text-zinc-400">精修输出</span>
+                        </h1>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button id="toggle-list-layout" class="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-white hover:bg-zinc-800 active:scale-90 transition-all">
+                        <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                    </button>
+                    <button id="final-back-btn" class="px-6 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-900 rounded-full font-black text-xs uppercase flex items-center justify-center gap-2 active:scale-90 transition-all text-black font-bold">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                        <span>Back</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scrollable Content Frame -->
+            <div class="flex-1 flex flex-col min-h-0 overflow-y-auto no-scrollbar pb-6 justify-center">
+                <!-- GRID VIEW FOR PHOTO (Active by default) -->
+                <div id="photo-grid-layout" class="grid grid-cols-2 gap-3 pb-4">
+                    <div class="bg-zinc-950 rounded-3xl border border-zinc-900 overflow-hidden cursor-zoom-in group transform duration-200 hover:scale-[1.01]" onclick="zoomPhoto(0)">
+                        <img id="final-pic-0" src="https://i.postimg.cc/QdjfSdm9/tu-ceng-2.png" class="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-105" alt="Final 1" />
+                    </div>
+                    <div class="bg-zinc-950 rounded-3xl border border-zinc-900 overflow-hidden cursor-zoom-in group transform duration-200 hover:scale-[1.01]" onclick="zoomPhoto(1)">
+                        <img id="final-pic-1" src="https://i.postimg.cc/QdjfSdmV/tu-ceng-3.png" class="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-105" alt="Final 2" />
+                    </div>
+                    <div class="bg-zinc-950 rounded-3xl border border-zinc-900 overflow-hidden cursor-zoom-in group transform duration-200 hover:scale-[1.01]" onclick="zoomPhoto(2)">
+                        <img id="final-pic-2" src="https://i.postimg.cc/NjQdbjDF/tu-ceng-4.png" class="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-105" alt="Final 3" />
+                    </div>
+                    <div class="bg-zinc-950 rounded-3xl border border-zinc-900 overflow-hidden cursor-zoom-in group transform duration-200 hover:scale-[1.01]" onclick="zoomPhoto(3)">
+                        <img id="final-pic-3" src="https://i.postimg.cc/htK2Mtsf/tu-ceng-5.png" class="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-105" alt="Final 4" />
+                    </div>
+                </div>
+
+                <!-- SINGLE PAGED CONTAINER FOR PHOTO -->
+                <div id="photo-single-layout" class="hidden flex-1 flex flex-col min-h-0">
+                    <div class="flex-1 flex items-center justify-center bg-zinc-950 rounded-[2.5rem] border border-zinc-900 relative overflow-hidden mb-6 cursor-zoom-in" onclick="zoomActivePhoto()">
+                        <img id="single-large-preview" src="https://i.postimg.cc/QdjfSdm9/tu-ceng-2.png" class="w-full h-full object-contain shadow-2xl transition-transform duration-300" alt="Large Preview" />
+                    </div>
+                    <div class="flex justify-center gap-3 mb-6">
+                        <button id="dot-0" onclick="chooseSinglePhoto(0)" class="w-12 h-12 rounded-2xl font-mono text-sm font-bold transition-all bg-primary text-white scale-110 shadow-lg">01</button>
+                        <button id="dot-1" onclick="chooseSinglePhoto(1)" class="w-12 h-12 rounded-2xl font-mono text-sm font-bold transition-all bg-zinc-900 hover:bg-zinc-800 text-zinc-500">02</button>
+                        <button id="dot-2" onclick="chooseSinglePhoto(2)" class="w-12 h-12 rounded-2xl font-mono text-sm font-bold transition-all bg-zinc-900 hover:bg-zinc-800 text-zinc-500">03</button>
+                        <button id="dot-3" onclick="chooseSinglePhoto(3)" class="w-12 h-12 rounded-2xl font-mono text-sm font-bold transition-all bg-zinc-900 hover:bg-zinc-800 text-zinc-500">04</button>
+                    </div>
+                </div>
+
+                <!-- EXCLUSIVE VIDEO PLAYER VIEW -->
+                <div id="final-video-layout" class="hidden flex-1 flex flex-col min-h-0">
+                    <div class="flex-1 flex items-center justify-center bg-black rounded-[2.5rem] border border-zinc-900 relative overflow-hidden mb-6 shadow-[0_0_50px_rgba(0,0,0,1)] cursor-zoom-in" onclick="zoomActiveVideo()">
+                        <video id="final-video-player" src="https://litter.catbox.moe/6r7ozzbzdr3h4pp0.mp4" class="w-full h-full object-contain" loop autoplay playsinline></video>
+                        
+                        <!-- Sound overlay button -->
+                        <button id="toggle-sound-btn" class="absolute bottom-6 right-6 p-4 bg-black/60 hover:bg-black/80 border border-white/10 rounded-full text-white backdrop-blur-md transition-all z-10" onclick="event.stopPropagation(); toggleVideoMute();">
+                            <i id="mute-icon" data-lucide="volume-2" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Interactive Download Controls -->
+            <div class="grid grid-cols-2 gap-4 pb-4">
+                <button onclick="simulateAction('Download')" class="py-5 bg-zinc-900 text-white border border-zinc-850 rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-2 active:scale-95 hover:bg-zinc-800 transition-all">
+                    <i data-lucide="download" class="w-4.5 h-4.5 text-[#25F4EE]"></i>
+                    <span>Download / 保存</span>
+                </button>
+                <button onclick="simulateAction('Share')" class="py-5 bg-white text-black rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-2 active:scale-95 hover:bg-zinc-200 transition-all shadow-xl shadow-zinc-900/30">
+                    <i data-lucide="share-2" class="w-4.5 h-4.5 text-black"></i>
+                    <span>Share / 发布</span>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MAIN PROGRESS TICKER FOOTER -->
+    <footer class="w-full h-4 bg-zinc-950 flex overflow-hidden border-t border-zinc-950 relative z-40">
+        <div id="tracker-bar-1" class="h-full bg-primary shadow-[0_0_15px_#FE2C55] w-1/4 transition-all duration-700"></div>
+        <div id="tracker-bar-2" class="h-full bg-white/10 w-1/4 transition-all duration-700"></div>
+        <div id="tracker-bar-3" class="h-full bg-white/5 w-1/4 transition-all duration-700"></div>
+        <div id="tracker-bar-4" class="h-full bg-zinc-900 w-1/4 transition-all duration-700"></div>
+    </footer>
+
+    <!-- INTERACTIVE SCRIPTS -->
+    <script>
+        // Initialize Lucide icons on start
+        lucide.createIcons();
+
+        // Data Models
+        const SCHEMES = {
+            1: {
+                id: 1,
+                stylistPlan: "Corduroy‑toned denim bomber jacket, vintage‑washed graphic hoodie, two‑toned waistband underwear, ripped split‑hem wide‑leg jeans, fuchsia backpack, slim‑fit sunglasses, polished chunky‑sole leather loafers.",
+                stylistPlanCn: "身穿做旧牛仔短款夹克，做旧印花连帽卫衣，撞色腰边内裤，破洞开衩阔腿牛仔裤，玫红色双肩背包，修身款墨镜，亮面乐福皮鞋。",
+                makeupPlan: "Street trendsetters, trendy makeup, a clean parted eyebrow effect at the end of the left eyebrow, clear and deep eyes. Perfect matte foundation, the signature dark contouring perfectly sculpts the three-dimensional jawline and cheekbone contours, clear lip lines, and moist and plump lips.",
+                makeupPlanCn: "街头弄潮儿，潮流妆容，左侧眉尾有一道干净的断眉效果，清澈深邃的眼神。完美的哑光底妆，标志性的深色修容完美雕刻出立体的下颌线和颧骨轮廓，清晰的毛流感，嘴唇滋润饱满。",
+                lookbookImg: "https://i.postimg.cc/8c8Hvpsj/Gemini-Generated-Image-615a79615a79615a.png",
+                blockbusters: [
+                    "https://i.postimg.cc/QdjfSdm9/tu-ceng-2.png",
+                    "https://i.postimg.cc/QdjfSdmV/tu-ceng-3.png",
+                    "https://i.postimg.cc/NjQdbjDF/tu-ceng-4.png",
+                    "https://i.postimg.cc/htK2Mtsf/tu-ceng-5.png"
+                ],
+                video: "https://litter.catbox.moe/6r7ozzbzdr3h4pp0.mp4"
+            },
+            2: {
+                id: 2,
+                stylistPlan: "Pink and white watercolor floral print halter fluttering ribbon top, distressed ripped blue denim skirt, white platform sandals, colorful shell layered necklace, pink mini crossbody bag, white large hoop earrings, light blue sunglasses, colorful beaded ring.",
+                stylistPlanCn: "身穿粉白水彩花卉印花挂脖飘带上衣，做旧破洞蓝色牛仔短裙，白色厚底防水台凉鞋，彩色贝壳叠戴项链，粉色迷你斜挎包，白色大圈耳环，头顶配戴浅蓝色墨镜，彩色串珠戒指",
+                makeupPlan: "Sweet pink atmospheric sun-kissed blush look with natural freckles, large area of pink-toned blush across mid-face and cheekbones. Pink-purple pearl sequins spread over eyelids, wild natural fluffy eyebrows, watery mirror glass lip glaze. Transparent and delicate skin with natural glow, no excessive skin-smoothing. Deep brown natural big waves, fluffy and airy hair.",
+                makeupPlanCn: "甜粉氛围感晒伤腮红妆，脸上带有自然原生雀斑，大面积粉调腮红横扫面中与颧骨。眼睑铺满细腻的粉紫调珠光闪片，野生自然毛流感眉形，嘴唇涂抹水润镜面玻璃唇釉。皮肤通透细腻，带有自然原生光泽感，无过度磨皮修图。头发为深棕自然大波浪卷发，发丝蓬松有空气感。",
+                lookbookImg: "https://i.postimg.cc/hjcyJZG5/op1.png",
+                blockbusters: [
+                    "https://i.postimg.cc/76wsCtLK/Gemini-Generated-Image-a62tga62tga62tga.png",
+                    "https://i.postimg.cc/Qxq0wZjF/jie-ping2026-05-16-13-37-43.png",
+                    "https://i.postimg.cc/d1wH7N02/jie-ping2026-05-16-11-35-14.png",
+                    "https://i.postimg.cc/HkVX2qxK/jie-ping2026-05-16-13-39-59.png"
+                ],
+                video: "https://litter.catbox.moe/p5262id6kdpu34t1.mp4"
+            }
+        };
+
+        // App State
+        let currentStep = 'UPLOAD'; // 'UPLOAD', 'ANALYSIS', 'EXPERTS', 'SHOOTING', 'LOOKBOOK', 'POST_PROCESSING', 'FINAL'
+        let selectedScheme = 1;
+        let finalOutputView = 'PHOTO'; // 'PHOTO' or 'VIDEO'
+        let photoLayoutMode = 'GRID'; // 'GRID' or 'SINGLE'
+        let selectedSingleIdx = 0;
+        let isMuted = false;
+
+        // Mock photos
+        const DEMO_USER_PHOTO = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800";
+        const DEMO_OUTFIT_PHOTO = "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=800";
+
+        // DOM elements
+        const screens = {
+            UPLOAD: document.getElementById('screen-upload'),
+            ANALYSIS: document.getElementById('screen-analysis'),
+            EXPERTS: document.getElementById('screen-experts'),
+            SHOOTING: document.getElementById('screen-shooting'),
+            LOOKBOOK: document.getElementById('screen-lookbook'),
+            POST_PROCESSING: document.getElementById('screen-post-processing'),
+            FINAL: document.getElementById('screen-final')
+        };
+
+        // Input controls
+        const userImgInput = document.getElementById('user-img-input');
+        const userImgPreview = document.getElementById('user-img-preview');
+        const userImgPlaceholder = document.getElementById('user-img-placeholder');
+        const outfitImgInput = document.getElementById('outfit-img-input');
+        const outfitImgPreview = document.getElementById('outfit-img-preview');
+        const outfitImgPlaceholder = document.getElementById('outfit-img-placeholder');
+        const genProposalBtn = document.getElementById('gen-proposal-btn');
+
+        // Autofill helpers
+        window.autofillUser = function() {
+            userImgPreview.src = DEMO_USER_PHOTO;
+            userImgPreview.classList.remove('hidden');
+            userImgPlaceholder.classList.add('hidden');
+            document.getElementById('autofill-user').classList.add('hidden');
+            checkUploadProgress();
+        };
+
+        window.autofillOutfit = function() {
+            outfitImgPreview.src = DEMO_OUTFIT_PHOTO;
+            outfitImgPreview.classList.remove('hidden');
+            outfitImgPlaceholder.classList.add('hidden');
+            document.getElementById('autofill-outfit').classList.add('hidden');
+            checkUploadProgress();
+        };
+
+        // Inputs Event Listeners
+        userImgInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                userImgPreview.src = URL.createObjectURL(file);
+                userImgPreview.classList.remove('hidden');
+                userImgPlaceholder.classList.add('hidden');
+                document.getElementById('autofill-user').classList.add('hidden');
+                checkUploadProgress();
+            }
+        });
+
+        outfitImgInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                outfitImgPreview.src = URL.createObjectURL(file);
+                outfitImgPreview.classList.remove('hidden');
+                outfitImgPlaceholder.classList.add('hidden');
+                document.getElementById('autofill-outfit').classList.add('hidden');
+                checkUploadProgress();
+            }
+        });
+
+        function checkUploadProgress() {
+            const hasUserImg = !userImgPreview.classList.contains('hidden');
+            const hasOutfitImg = !outfitImgPreview.classList.contains('hidden');
+            if (hasUserImg && hasOutfitImg) {
+                genProposalBtn.disabled = false;
+                genProposalBtn.classList.remove('opacity-30', 'pointer-events-none');
+            } else {
+                genProposalBtn.disabled = true;
+                genProposalBtn.classList.add('opacity-30', 'pointer-events-none');
+            }
+        }
+
+        // Navigation
+        function showScreen(stepName) {
+            currentStep = stepName;
+            
+            // Hide all screens
+            Object.keys(screens).forEach(key => {
+                screens[key].classList.add('hidden');
+                screens[key].classList.add('opacity-0');
+            });
+
+            // Show selected screen with transitions
+            setTimeout(() => {
+                const trgScreen = screens[stepName];
+                trgScreen.classList.remove('hidden');
+                setTimeout(() => {
+                    trgScreen.classList.remove('opacity-0');
+                    trgScreen.classList.add('opacity-100');
+                }, 50);
+            }, 100);
+
+            // Update footer tracker height/colors
+            updateFooterTracker(stepName);
+
+            // Header state
+            const stateDot = document.getElementById('status-dot');
+            const stateText = document.getElementById('status-text');
+            const stateSubtext = document.getElementById('status-subtext');
+
+            if (stepName === 'ANALYSIS' || stepName === 'SHOOTING' || stepName === 'POST_PROCESSING') {
+                stateDot.style.backgroundColor = '#FE2C55';
+                stateText.textContent = 'PROCESSOR: PROCESSING';
+                stateSubtext.textContent = '生成处理中';
+            } else {
+                stateDot.style.backgroundColor = '#25F4EE';
+                stateText.textContent = 'PROCESSOR: READY';
+                stateSubtext.textContent = '就绪';
+            }
+        }
+
+        function updateFooterTracker(stepName) {
+            const bar1 = document.getElementById('tracker-bar-1');
+            const bar2 = document.getElementById('tracker-bar-2');
+            const bar3 = document.getElementById('tracker-bar-3');
+            const bar4 = document.getElementById('tracker-bar-4');
+
+            // Reset standard styles
+            bar1.className = "h-full transition-all duration-700";
+            bar2.className = "h-full transition-all duration-700";
+            bar3.className = "h-full transition-all duration-700";
+            bar4.className = "h-full transition-all duration-700";
+
+            if (stepName === 'UPLOAD') {
+                bar1.className += " bg-primary shadow-[0_0_15px_#FE2C55] w-full";
+                bar2.className += " bg-zinc-950 w-0";
+                bar3.className += " bg-zinc-950 w-0";
+                bar4.className += " bg-zinc-950 w-0";
+            } else if (stepName === 'ANALYSIS') {
+                bar1.className += " bg-emerald-500 w-1/4";
+                bar2.className += " bg-primary shadow-[0_0_15px_#FE2C55] w-1/2";
+                bar3.className += " bg-zinc-950 w-1/4";
+                bar4.className += " bg-zinc-950 w-0";
+            } else if (stepName === 'EXPERTS' || stepName === 'LOOKBOOK') {
+                bar1.className += " bg-emerald-500 w-1/4";
+                bar2.className += " bg-emerald-500 w-1/4";
+                bar3.className += " bg-secondary shadow-[0_0_15px_#25F4EE] w-2/4";
+                bar4.className += " bg-zinc-950 w-0";
+            } else if (stepName === 'SHOOTING' || stepName === 'POST_PROCESSING') {
+                bar1.className += " bg-emerald-500 w-1/4";
+                bar2.className += " bg-emerald-500 w-1/4";
+                bar3.className += " bg-emerald-500 w-1/4";
+                bar4.className += " bg-primary w-1/4 animate-pulse";
+            } else if (stepName === 'FINAL') {
+                bar1.className += " bg-gradient-to-r from-primary to-secondary w-full";
+                bar2.className += " w-0";
+                bar3.className += " w-0";
+                bar4.className += " w-0";
+            }
+        }
+
+        // STEP 1 -> STEP 2: Proposal generation
+        genProposalBtn.addEventListener('click', () => {
+            showScreen('ANALYSIS');
+            runAnalysisFlow();
+        });
+
+        // Simulating the 3 processing phases
+        function runAnalysisFlow() {
+            const phases = [
+                { title: "Visual Director", desc: "Analyzing aesthetics & palette...", titleCn: "视觉总监", descCn: "分析美学与色调...", icon: "camera", duration: 1500 },
+                { title: "Main Stylist", desc: "Curating textile & silhouette...", titleCn: "搭配师", descCn: "策划织物与廓形...", icon: "shirt", duration: 1500 },
+                { title: "Glam Studio", desc: "Refining makeup details...", titleCn: "妆造专家", descCn: "精修妆容...", icon: "palette", duration: 1500 }
+            ];
+
+            let index = 0;
+            const iconBox = document.getElementById('analysis-icon-box');
+            const analysisIcon = document.getElementById('analysis-icon');
+            const analysisTitle = document.getElementById('analysis-title');
+            const analysisDesc = document.getElementById('analysis-desc');
+
+            function nextPhase() {
+                if (index < phases.length) {
+                    const phase = phases[index];
+                    analysisIcon.setAttribute('data-lucide', phase.icon);
+                    analysisTitle.innerHTML = phase.title + "<br><span class='text-xl text-zinc-100'>" + phase.titleCn + "</span>";
+                    analysisDesc.innerHTML = phase.desc + "<br>" + phase.descCn;
+                    
+                    // Update active dot indicators
+                    for (let d = 0; d < 3; d++) {
+                        const cell = document.getElementById('indicator-' + d);
+                        if (d === index) {
+                            cell.className = "w-12 h-2 rounded-full bg-secondary transition-all duration-700";
+                        } else if (d < index) {
+                            cell.className = "w-2 h-2 rounded-full bg-emerald-500 transition-all duration-700";
+                        } else {
+                            cell.className = "w-2 h-2 rounded-full bg-zinc-800 transition-all duration-700";
+                        }
+                    }
+                    lucide.createIcons();
+                    
+                    index++;
+                    setTimeout(nextPhase, phase.duration);
+                } else {
+                    // Load chosen Scheme text details first
+                    updateSchemeViewInputs();
+                    showScreen('EXPERTS');
+                }
+            }
+            nextPhase();
+        }
+
+        // STEP 3: Toggle schemes
+        const tab1 = document.getElementById('scheme1-tab');
+        const tab2 = document.getElementById('scheme2-tab');
+
+        tab1.addEventListener('click', () => {
+            selectedScheme = 1;
+            tab1.className = "p-3 rounded-2xl border transition-all bg-primary border-primary text-white";
+            tab2.className = "p-3 rounded-2xl border transition-all bg-zinc-900 border-zinc-800 text-zinc-500";
+            updateSchemeViewInputs();
+        });
+
+        tab2.addEventListener('click', () => {
+            selectedScheme = 2;
+            tab2.className = "p-3 rounded-2xl border transition-all bg-secondary border-secondary text-black";
+            tab1.className = "p-3 rounded-2xl border transition-all bg-zinc-900 border-zinc-800 text-zinc-500";
+            updateSchemeViewInputs();
+        });
+
+        function updateSchemeViewInputs() {
+            const data = SCHEMES[selectedScheme];
+            document.getElementById('stylist-en').textContent = data.stylistPlan;
+            document.getElementById('stylist-cn').textContent = data.stylistPlanCn;
+            document.getElementById('makeup-en').textContent = data.makeupPlan;
+            document.getElementById('makeup-cn').textContent = data.makeupPlanCn;
+            
+            // Lookbook images
+            document.getElementById('lookbook-main-img').src = data.lookbookImg;
+            
+            // Final blocks
+            document.getElementById('final-pic-0').src = data.blockbusters[0];
+            document.getElementById('final-pic-1').src = data.blockbusters[1];
+            document.getElementById('final-pic-2').src = data.blockbusters[2];
+            document.getElementById('final-pic-3').src = data.blockbusters[3];
+
+            document.getElementById('single-large-preview').src = data.blockbusters[0];
+            document.getElementById('final-video-player').src = data.video;
+        }
+
+        document.getElementById('experts-back-btn').addEventListener('click', () => {
+            showScreen('UPLOAD');
+        });
+
+        // STEP 3 -> STEP 4: Enter shooting simulator
+        document.getElementById('experts-shoot-btn').addEventListener('click', () => {
+            showScreen('SHOOTING');
+            runShootingAnimation();
+        });
+
+        function runShootingAnimation() {
+            let progress = 0;
+            const pctText = document.getElementById('shooting-progress-pct');
+            const bar = document.getElementById('shooting-progress-bar');
+
+            const interval = setInterval(() => {
+                progress += Math.floor(Math.random() * 5) + 2;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        showScreen('LOOKBOOK');
+                    }, 500);
+                }
+                pctText.textContent = progress + "%";
+                bar.style.width = progress + "%";
+            }, 80);
+        }
+
+        // STEP 5: Lookbook output
+        document.getElementById('lookbook-back-btn').addEventListener('click', () => {
+            showScreen('EXPERTS');
+        });
+
+        // Zoom outputs directly in site
+        document.getElementById('lookbook-image-container').addEventListener('click', () => {
+            openZoomImage(SCHEMES[selectedScheme].lookbookImg);
+        });
+
+        // Trigger post processing animation for Retouch or Video
+        document.getElementById('lookbook-retouch-btn').addEventListener('click', () => {
+            finalOutputView = 'PHOTO';
+            triggerPostProcessingFlow();
+        });
+
+        document.getElementById('lookbook-video-btn').addEventListener('click', () => {
+            finalOutputView = 'VIDEO';
+            triggerPostProcessingFlow();
+        });
+
+        function triggerPostProcessingFlow() {
+            showScreen('POST_PROCESSING');
+            
+            const mainTitle = document.getElementById('post-proc-maintitle');
+            const subTitle = document.getElementById('post-proc-subtitle');
+            const statusLabel = document.getElementById('post-proc-status');
+            const footerLabel = document.getElementById('post-proc-footer');
+            const iconRef = document.getElementById('post-proc-icon');
+            const iconRefBack = document.getElementById('post-proc-icon-back');
+
+            if (finalOutputView === 'PHOTO') {
+                mainTitle.textContent = "Refining Details";
+                subTitle.textContent = "正在精修画面细节";
+                statusLabel.textContent = "Retouching / 精修中";
+                footerLabel.textContent = "Upscaling Detail / 画质增强中";
+                iconRef.setAttribute('data-lucide', 'sparkles');
+                iconRefBack.setAttribute('data-lucide', 'sparkles');
+            } else {
+                mainTitle.textContent = "Rendering Motion";
+                subTitle.textContent = "正在渲染动态视频";
+                statusLabel.textContent = "Editing / 剪辑中";
+                footerLabel.textContent = "Frame Interpolation / 补帧处理中";
+                iconRef.setAttribute('data-lucide', 'film');
+                iconRefBack.setAttribute('data-lucide', 'film');
+            }
+            lucide.createIcons();
+
+            let progress = 0;
+            const pctText = document.getElementById('post-proc-progress-pct');
+            const bar = document.getElementById('post-proc-progress-bar');
+
+            // Set progress to 0 initially
+            pctText.textContent = "0%";
+            bar.style.width = "0%";
+
+            const interval = setInterval(() => {
+                progress += Math.floor(Math.random() * 4) + 2;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        setupFinalOutputView();
+                        showScreen('FINAL');
+                    }, 500);
+                }
+                pctText.textContent = progress + "%";
+                bar.style.width = progress + "%";
+            }, 60);
+        }
+
+        // STEP 7: FINAL SHOWCASE
+        document.getElementById('final-back-btn').addEventListener('click', () => {
+            showScreen('LOOKBOOK');
+        });
+
+        function setupFinalOutputView() {
+            const titleEn = document.getElementById('final-title-en');
+            const titleCn = document.getElementById('final-title-cn');
+            const gridLayout = document.getElementById('photo-grid-layout');
+            const singleLayout = document.getElementById('photo-single-layout');
+            const videoLayout = document.getElementById('final-video-layout');
+            const layoutToggleBtn = document.getElementById('toggle-list-layout');
+
+            if (finalOutputView === 'PHOTO') {
+                titleEn.textContent = "Retouch Output";
+                titleCn.textContent = "精修输出";
+                layoutToggleBtn.classList.remove('hidden');
+                videoLayout.classList.add('hidden');
+                
+                if (photoLayoutMode === 'GRID') {
+                    gridLayout.classList.remove('hidden');
+                    singleLayout.classList.add('hidden');
+                } else {
+                    gridLayout.classList.add('hidden');
+                    singleLayout.classList.remove('hidden');
+                }
+            } else {
+                titleEn.textContent = "Video Shoot";
+                titleCn.textContent = "视频拍摄";
+                layoutToggleBtn.classList.add('hidden');
+                gridLayout.classList.add('hidden');
+                singleLayout.classList.add('hidden');
+                videoLayout.classList.remove('hidden');
+                
+                // Play final video automatically
+                const player = document.getElementById('final-video-player');
+                player.muted = isMuted;
+                player.play().catch(e => console.log('Video play policy: ', e));
+            }
+        }
+
+        // Layout Grid Toggle
+        document.getElementById('toggle-list-layout').addEventListener('click', () => {
+            photoLayoutMode = (photoLayoutMode === 'GRID') ? 'SINGLE' : 'GRID';
+            setupFinalOutputView();
+        });
+
+        // Photo Gallery Selectors
+        window.chooseSinglePhoto = function(idx) {
+            selectedSingleIdx = idx;
+            const data = SCHEMES[selectedScheme];
+            document.getElementById('single-large-preview').src = data.blockbusters[idx];
+
+            // Update dot classes
+            for (let i = 0; i < 4; i++) {
+                const dot = document.getElementById('dot-' + i);
+                if (i === idx) {
+                    dot.className = "w-12 h-12 rounded-2xl font-mono text-sm font-bold transition-all bg-primary text-white scale-110 shadow-lg";
+                } else {
+                    dot.className = "w-12 h-12 rounded-2xl font-mono text-sm font-bold transition-all bg-zinc-900 hover:bg-zinc-800 text-zinc-500";
+                }
+            }
+        };
+
+        window.zoomPhoto = function(idx) {
+            const data = SCHEMES[selectedScheme];
+            openZoomImage(data.blockbusters[idx]);
+        };
+
+        window.zoomActivePhoto = function() {
+            const data = SCHEMES[selectedScheme];
+            openZoomImage(data.blockbusters[selectedSingleIdx]);
+        };
+
+        window.zoomActiveVideo = function() {
+            const data = SCHEMES[selectedScheme];
+            openZoomVideo(data.video);
+        };
+
+        // Zoom handlers
+        const zoomImageOverlay = document.getElementById('zoom-image-overlay');
+        const zoomTargetImage = document.getElementById('zoom-target-image');
+        const zoomVideoOverlay = document.getElementById('zoom-video-overlay');
+        const zoomTargetVideo = document.getElementById('zoom-target-video');
+
+        function openZoomImage(src) {
+            zoomTargetImage.src = src;
+            zoomImageOverlay.classList.remove('hidden');
+            setTimeout(() => {
+                zoomTargetImage.classList.remove('scale-95');
+                zoomTargetImage.classList.add('scale-100');
+            }, 50);
+        }
+
+        document.getElementById('close-zoom-image').addEventListener('click', () => {
+            zoomTargetImage.classList.remove('scale-100');
+            zoomTargetImage.classList.add('scale-95');
+            setTimeout(() => {
+                zoomImageOverlay.classList.add('hidden');
+            }, 150);
+        });
+
+        function openZoomVideo(src) {
+            zoomTargetVideo.src = src;
+            zoomVideoOverlay.classList.remove('hidden');
+            zoomTargetVideo.play().catch(e => console.log('Zoom video play policy: ', e));
+        }
+
+        document.getElementById('close-zoom-video').addEventListener('click', () => {
+            zoomTargetVideo.pause();
+            zoomVideoOverlay.classList.add('hidden');
+        });
+
+        // Mute/Unmute Video
+        window.toggleVideoMute = function() {
+            isMuted = !isMuted;
+            const player = document.getElementById('final-video-player');
+            const muteIcon = document.getElementById('mute-icon');
+            player.muted = isMuted;
+
+            if (isMuted) {
+                muteIcon.setAttribute('data-lucide', 'volume-x');
+            } else {
+                muteIcon.setAttribute('data-lucide', 'volume-2');
+            }
+            lucide.createIcons();
+        };
+
+        // Reset system to clean state
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            // Clear selections
+            userImgPreview.src = "";
+            userImgPreview.classList.add('hidden');
+            userImgPlaceholder.classList.remove('hidden');
+            document.getElementById('autofill-user').classList.remove('hidden');
+
+            outfitImgPreview.src = "";
+            outfitImgPreview.classList.add('hidden');
+            outfitImgPlaceholder.classList.remove('hidden');
+            document.getElementById('autofill-outfit').classList.remove('hidden');
+
+            document.getElementById('prompt-textarea').value = "";
+
+            checkUploadProgress();
+            showScreen('UPLOAD');
+        });
+
+        // Action download/share simulation popups
+        window.simulateAction = function(type) {
+            alert(`${type} content successfully triggered! / 已成功触发展示和${type === 'Download' ? '保存' : '发布'}功能！`);
+        };
+
+    </script>
+</body>
+</html>
